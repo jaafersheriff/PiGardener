@@ -4,6 +4,7 @@ import atexit
 import schedule
 import datetime
 import threading
+import subprocess
 
 GPIO.setmode(GPIO.BOARD)
 
@@ -48,8 +49,18 @@ pump = Component(7, "out")
 led = Component(37, "out")
 sensor = Component(8, "in")
 
+piccount = 0
+def still():
+    global piccount
+    piccount += 1
+    command = "raspistill -o ./stills/pic" + str(piccount) + ".jpg -th 0:0:0"
+    subprocess.call(command, shell=True)
+
 def start():
     pump.turnOff()
+    led.turnOn()
+    time.sleep(0.1)
+    led.turnOff()
 
     # 16 hours behind means 9:00 is 16:00 and 21:00 is 05:00
     schedule.every().day.at("17:00").do(led.turnOn)
@@ -60,20 +71,18 @@ def start():
     else:
         led.turnOff()
     drystart = None
-    drycounting = False
     while True:
-        if (sensor.read() == 0 and not drycounting):
+        if (sensor.read() == 0 and drystart is not None):
             drystart = datetime.datetime.now()
-            drycounting = True
-        if (drystart is not None and (datetime.datetime.now() - drystart).seconds > 2):
-            pump.turnOn()
-            time.sleep(1)
-            pump.turnOff()
+        if (drystart is not None and (datetime.datetime.now() - drystart).seconds > 15):
+            if (sensor.read() == 0):
+                pump.turnOn()
+                time.sleep(1.5)
+                pump.turnOff()
             drystart = None
-            drycounting = False
             
         schedule.run_pending()
-        time.sleep(1)
+        time.sleep(2)
 
 # start infinite job on thread
 s = threading.Thread(target = start)
