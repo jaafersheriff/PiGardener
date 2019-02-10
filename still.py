@@ -12,7 +12,8 @@ def still():
 
 while True:
     now = datetime.datetime.now()
-    if((now.time().hour > 17 or now.time().hour < 5) and int(math.floor(time.time() % 1801)) == 1800):
+# 1342 = 22:22
+    if((now.time().hour > 17 or now.time().hour < 5) and int(math.floor(time.time() % 1342)) == 1341):
         still()
     time.sleep(1)
 

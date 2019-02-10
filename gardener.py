@@ -72,7 +72,7 @@ def start():
         led.turnOff()
     drystart = None
     while True:
-        if (sensor.read() == 0 and drystart is not None):
+        if (sensor.read() == 0 and drystart is None):
             drystart = datetime.datetime.now()
         if (drystart is not None and (datetime.datetime.now() - drystart).seconds > 15):
             if (sensor.read() == 0):
