@@ -5,7 +5,7 @@ import atexit
 import schedule
 import datetime
 import threading
-import subprocess
+import csv
 
 GPIO.setmode(GPIO.BCM)
 
@@ -92,5 +92,12 @@ s.daemon = True
 s.start()
 
 # keep main thread alive 
+writecount = 0
 while True:
     time.sleep(1)
+    writecount += 1
+    if (writecount >= 60):
+        writecount = 0
+        with open('sensor.csv', 'ab') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(sensor.read())])
