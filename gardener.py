@@ -1,4 +1,5 @@
 import RPi.GPIO as GPIO
+import RPI_ADC0832
 import time
 import atexit
 import schedule
@@ -6,55 +7,56 @@ import datetime
 import threading
 import subprocess
 
-GPIO.setmode(GPIO.BOARD)
+GPIO.setmode(GPIO.BCM)
 
 def exit_handler():
     GPIO.cleanup()
 atexit.register(exit_handler)
 
-class Component: 
+class WriteComponent: 
     pin = -1
     state = 0
-    mode = GPIO.OUT
 
-    def __init__(self, pin, mode):
+    def __init__(self, pin): 
         self.pin = pin
-        self.mode = GPIO.OUT if mode == "out" else GPIO.IN
-        GPIO.setup(pin, self.mode)
+        GPIO.setup(pin, GPIO.OUT)
         self.turnOff()
 
     def turnOn(self):
-        if(self.mode == GPIO.OUT):
-            GPIO.output(self.pin, GPIO.LOW)
-            self.state = 1
+        GPIO.output(self.pin, GPIO.LOW)
+        self.state = 1
 
     def turnOff(self):
-        if(self.mode == GPIO.OUT):
-            GPIO.output(self.pin, GPIO.HIGH)
-            self.state = 0
+        GPIO.output(self.pin, GPIO.HIGH)
+        self.state = 0
 
     def toggle(self):
         if (self.state == 0):
             self.turnOn()
         else:
             self.turnOff()
-    
+
+class ADCComponent:
+    adc = None
+
+    def __init__(self, cspin, clkpin, iopin):
+        self.adc = RPI_ADC0832.ADC0832()
+        self.adc.csPin = cspin
+        self.adc.clkPin = clkpin
+        self.adc.doPin = iopin
+        self.adc.diPin = iopin
+
     def read(self):
-        if(self.mode == GPIO.IN):
-            return GPIO.input(self.pin)
+        if(self.adc is not None and self.adc.read_adc(0) is not None):
+            return self.adc.read_adc(0)/255.0
         else:
-            return 0
+            print "ERROR READING ADC"
+            return 1
+            
 
-pump = Component(7, "out")
-led = Component(37, "out")
-sensor = Component(8, "in")
-
-piccount = 0
-def still():
-    global piccount
-    piccount += 1
-    command = "raspistill -o ./stills/pic" + str(piccount) + ".jpg -th 0:0:0"
-    subprocess.call(command, shell=True)
+sensor = ADCComponent(17, 27, 22)
+pump = WriteComponent(4) # 7)
+led = WriteComponent(26) #37)
 
 def start():
     pump.turnOff()
@@ -72,12 +74,12 @@ def start():
         led.turnOff()
     drystart = None
     while True:
-        if (sensor.read() == 0 and drystart is None):
+        if (sensor.read() <= 0.35 and drystart is None):
             drystart = datetime.datetime.now()
         if (drystart is not None and (datetime.datetime.now() - drystart).seconds > 15):
-            if (sensor.read() == 0):
+            if (sensor.read() <= 0.35):
                 pump.turnOn()
-                time.sleep(1.5)
+                time.sleep(2)
                 pump.turnOff()
             drystart = None
             
