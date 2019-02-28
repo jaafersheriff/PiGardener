@@ -47,17 +47,24 @@ class ADCComponent:
         self.adc.diPin = iopin
 
     def read(self):
-        if(self.adc is not None and self.adc.read_adc(0) is not None):
-            return self.adc.read_adc(0)/255.0
-        else:
-            print "ERROR READING ADC"
-            return 1
+        if(self.adc is not None):
+            val = self.adc.read_adc(0)
+            if (val is not None):
+                if (val < 1):
+                    return val/255.0
+                else:
+                    return self.adc.read_adc(0)/255.0
+        return 2 # Error! 
             
 
 sensor = ADCComponent(17, 27, 22)
-pump = WriteComponent(4) # 7)
-led = WriteComponent(26) #37)
+pump = WriteComponent(4)
+led = WriteComponent(26)
 
+def writeToCSV():
+    with open('sensor.csv', 'ab') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        writer.writerow([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(sensor.read())])
 def start():
     pump.turnOff()
     led.turnOn()
@@ -74,10 +81,13 @@ def start():
         led.turnOff()
     drystart = None
     while True:
-        if (sensor.read() <= 0.35 and drystart is None):
+        if (sensor.read() <= 0.2 and drystart is None):
+            writeToCSV()
             drystart = datetime.datetime.now()
         if (drystart is not None and (datetime.datetime.now() - drystart).seconds > 15):
-            if (sensor.read() <= 0.35):
+            writeToCSV()
+            if (sensor.read() <= 0.2):
+                writeToCSV()
                 pump.turnOn()
                 time.sleep(2)
                 pump.turnOff()
@@ -96,8 +106,6 @@ writecount = 0
 while True:
     time.sleep(1)
     writecount += 1
-    if (writecount >= 60):
+    if (writecount >= 1800):
         writecount = 0
-        with open('sensor.csv', 'ab') as csvfile:
-            writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            writer.writerow([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(sensor.read())])
+        writeToCSV()
