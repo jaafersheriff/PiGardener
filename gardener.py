@@ -47,14 +47,12 @@ class ADCComponent:
         self.adc.diPin = iopin
 
     def read(self):
-        if(self.adc is not None):
-            val = self.adc.read_adc(0)
-            if (val is not None):
-                if (val < 1):
-                    return val/255.0
-                else:
-                    return self.adc.read_adc(0)/255.0
-        return 2 # Error! 
+        try:
+            if(self.adc is not None):
+                return self.adc.read_adc(0)/255.0
+            return 2 # Error! 
+        except:
+            return 2
             
 
 sensor = ADCComponent(17, 27, 22)
@@ -62,9 +60,12 @@ pump = WriteComponent(4)
 led = WriteComponent(26)
 
 def writeToCSV():
-    with open('sensor.csv', 'ab') as csvfile:
-        writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        writer.writerow([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(sensor.read())])
+    try:
+        with open('sensor.csv', 'ab') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(sensor.read())])
+    except:
+        print("gardener error writing to csv")
 def start():
     pump.turnOff()
     led.turnOn()
