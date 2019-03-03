@@ -66,6 +66,17 @@ def writeToCSV():
             writer.writerow([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(sensor.read())])
     except:
         print("gardener error writing to csv")
+
+def firewater():
+    watertime = 3
+    waternum = 8.0
+    timer = datetime.datetime.now()
+    while (datetime.datetime.now() - timer).seconds < watertime:
+        pump.turnOn()
+        time.sleep(t/b/2)
+        pump.turnOff()
+        time.sleep(t/b/2)
+
 def start():
     pump.turnOff()
     led.turnOn()
@@ -89,9 +100,8 @@ def start():
             writeToCSV()
             if (sensor.read() <= 0.2):
                 writeToCSV()
-                pump.turnOn()
-                time.sleep(2)
-                pump.turnOff()
+                firewater()
+                writeToCSV()
             drystart = None
             
         schedule.run_pending()
