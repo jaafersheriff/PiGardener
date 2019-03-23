@@ -103,7 +103,6 @@ def start():
                 firewater()
                 writeToCSV()
             drystart = None
-            
         schedule.run_pending()
         time.sleep(2)
 
