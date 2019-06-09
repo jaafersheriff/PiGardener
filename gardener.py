@@ -7,6 +7,8 @@ import datetime
 import threading
 import csv
 
+ERROR_READ = 2
+
 GPIO.setmode(GPIO.BCM)
 
 def exit_handler():
@@ -49,33 +51,31 @@ class ADCComponent:
     def read(self):
         try:
             if(self.adc is not None):
-                return self.adc.read_adc(0)/255.0
-            return 2 # Error! 
+                return 2.0 * self.adc.read_adc(0)/255.0
+            return ERROR_READ
         except:
-            return 2
+            return ERROR_READ
             
 
 sensor = ADCComponent(17, 27, 22)
 pump = WriteComponent(4)
 led = WriteComponent(26)
 
-def writeToCSV():
+def writeToCSV(wetness):
+    if (wetness == ERROR_READ):
+        return
     try:
         with open('sensor.csv', 'ab') as csvfile:
             writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            writer.writerow([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(sensor.read())])
+            writer.writerow([datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), str(wetness)])
     except:
         print("gardener error writing to csv")
 
 def firewater():
-    watertime = 3
-    waternum = 8.0
-    timer = datetime.datetime.now()
-    while (datetime.datetime.now() - timer).seconds < watertime:
-        pump.turnOn()
-        time.sleep(t/b/2)
-        pump.turnOff()
-        time.sleep(t/b/2)
+    pump.turnOn()
+    time.sleep(0.85)
+    pump.turnOff()
+    time.sleep(2)
 
 def start():
     pump.turnOff()
@@ -83,25 +83,25 @@ def start():
     time.sleep(0.1)
     led.turnOff()
 
-    # 16 hours behind means 9:00 is 16:00 and 21:00 is 05:00
-    schedule.every().day.at("17:00").do(led.turnOn)
-    schedule.every().day.at("05:00").do(led.turnOff)
+    schedule.every().day.at("21:00").do(led.turnOn)
+    schedule.every().day.at("09:00").do(led.turnOff)
     hour = datetime.datetime.now().hour
-    if hour >= 17 or hour < 5:
+    if hour >= 21 or hour < 9:
         led.turnOn()
     else:
         led.turnOff()
     drystart = None
     while True:
-        if (sensor.read() <= 0.2 and drystart is None):
-            writeToCSV()
+        wetness = sensor.read()
+        print(wetness)
+        if (wetness <= 0.4 and drystart is None):
+            writeToCSV(wetness)
             drystart = datetime.datetime.now()
         if (drystart is not None and (datetime.datetime.now() - drystart).seconds > 15):
-            writeToCSV()
-            if (sensor.read() <= 0.2):
-                writeToCSV()
+            writeToCSV(sensor.read())
+            while (sensor.read() <= 0.7):
                 firewater()
-                writeToCSV()
+                writeToCSV(sensor.read())
             drystart = None
         schedule.run_pending()
         time.sleep(2)
@@ -116,6 +116,6 @@ writecount = 0
 while True:
     time.sleep(1)
     writecount += 1
-    if (writecount >= 1800):
+    if (writecount >= 100):
         writecount = 0
-        writeToCSV()
+        writeToCSV(sensor.read())
