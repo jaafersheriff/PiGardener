@@ -116,6 +116,6 @@ writecount = 0
 while True:
     time.sleep(1)
     writecount += 1
-    if (writecount >= 100):
+    if (writecount >= 900):
         writecount = 0
         writeToCSV(sensor.read())
