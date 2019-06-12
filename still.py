@@ -3,7 +3,7 @@ import time
 import datetime
 import math
 
-CAPTURE_TIME = 5
+CAPTURE_TIME = 3600
 
 def still():
     filename = "./stills/pic" + str(int(math.floor(time.time()))) + ".jpg"
