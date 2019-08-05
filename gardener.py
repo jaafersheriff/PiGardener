@@ -1,3 +1,5 @@
+print "I MADE CHANGES DONT FORGET TO TEST THEM PLS"
+
 import RPi.GPIO as GPIO
 import RPI_ADC0832
 import time
@@ -75,7 +77,7 @@ def firewater():
     pump.turnOn()
     time.sleep(0.85)
     pump.turnOff()
-    time.sleep(2)
+    time.sleep(5)
 
 def start():
     pump.turnOff()
@@ -94,14 +96,18 @@ def start():
     while True:
         wetness = sensor.read()
         print(wetness)
-        if (wetness <= 0.4 and drystart is None):
+        if (wetness is not ERROR_READ and wetness <= 0.4 and drystart is None):
             writeToCSV(wetness)
             drystart = datetime.datetime.now()
         if (drystart is not None and (datetime.datetime.now() - drystart).seconds > 15):
             writeToCSV(sensor.read())
-            while (sensor.read() <= 0.7):
-                firewater()
-                writeToCSV(sensor.read())
+            while (True):
+                newWet = sensor.read()
+                if (newWet is not ERROR_READ and newWet < 0.7):
+                    firewater()
+                    writeToCSV(newWet)
+                else:
+                    break
             drystart = None
         schedule.run_pending()
         time.sleep(2)
