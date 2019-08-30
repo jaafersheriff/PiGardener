@@ -8,6 +8,7 @@ import datetime
 import threading
 import csv
 
+import os
 import subprocess
 import sys
 
@@ -17,6 +18,8 @@ GPIO.setmode(GPIO.BCM)
 
 def exit_handler():
     GPIO.cleanup()
+    # disable power to fan
+    os.system("echo raspberry | sudo -S ~/uhubctl/uhubctl -a 0 -p 1 -l 1-1.4")
 atexit.register(exit_handler)
 
 class WriteComponent: 
@@ -86,6 +89,9 @@ def start():
     led.turnOn()
     time.sleep(0.1)
     led.turnOff()
+
+    #enable power to fan
+    os.system("echo raspberry | sudo -S ~/uhubctl/uhubctl -a 1 -p 1 -l 1-1.4")
 
     schedule.every().day.at("21:00").do(led.turnOn)
     schedule.every().day.at("09:00").do(led.turnOff)
