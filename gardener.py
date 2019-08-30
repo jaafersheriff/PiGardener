@@ -8,6 +8,9 @@ import datetime
 import threading
 import csv
 
+import subprocess
+import sys
+
 ERROR_READ = 2
 
 GPIO.setmode(GPIO.BCM)
@@ -115,6 +118,9 @@ def start():
 s = threading.Thread(target = start)
 s.daemon = True
 s.start()
+
+# create background process for timelapse
+subprocess.Popen([sys.executable, 'still.py'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 # keep main thread alive 
 writecount = 0
